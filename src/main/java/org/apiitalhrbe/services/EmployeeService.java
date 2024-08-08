@@ -5,9 +5,11 @@ import org.apiitalhrbe.dtos.request.EmployeeRequestDTO;
 import org.apiitalhrbe.dtos.response.EmployeeDetailResponseDTO;
 import org.apiitalhrbe.dtos.response.EmployeeResponseDTO;
 import org.apiitalhrbe.entities.nosql.EmployeeHistoryEntity;
+import org.apiitalhrbe.entities.nosql.HardcodedHistoryEntity;
 import org.apiitalhrbe.entities.sql.EmployeeEntity;
 import org.apiitalhrbe.entities.sql.WorkstationEntity;
 import org.apiitalhrbe.repositories.nosql.EmployeeHistoryRepository;
+import org.apiitalhrbe.repositories.nosql.HardcodedHistoryRepository;
 import org.apiitalhrbe.repositories.sql.EmployeeRepository;
 import org.apiitalhrbe.utils.*;
 import org.apiitalhrbe.utils.enums.ContractType;
@@ -29,6 +31,9 @@ public class EmployeeService {
     private EmployeeHistoryRepository employeeHistoryRepository;
 
     @Autowired
+    private HardcodedHistoryRepository hardcodedHistoryRepository;
+
+    @Autowired
     private PersonService personService;
 
     @Autowired
@@ -39,6 +44,7 @@ public class EmployeeService {
 
     @Autowired
     private ReportService<EmployeeHistoryEntity> reportService;
+
 
     private final ModelMapper modelMapper = new ModelMapper();
 
@@ -172,30 +178,50 @@ public class EmployeeService {
             if (!isValidDatesReport(from, to)) {
                 throw new IllegalArgumentException("The from date must be before the to date");
             }
+
+            if(hardcodedHistoryRepository.findByFromAndTo(from, to).isPresent()){
+                return hardcodedHistoryRepository.findByFromAndTo(from, to).get().getHardcodedValues();
+            }
+
             List<EmployeeHistoryEntity> employeeHistoryCreated = employeeHistoryRepository.findByFromBetweenAndState(from, to, "CREATED")
                     .orElseThrow(() -> new RuntimeException("Error getting employee history"));
             List<EmployeeHistoryEntity> employeeHistoryActivated = employeeHistoryRepository.findByFromBetweenAndState(from, to, "ACTIVATED")
                     .orElseThrow(() -> new RuntimeException("Error getting employee history"));
-            if (employeeHistoryCreated.isEmpty() && employeeHistoryActivated.isEmpty()) {
-                throw new RuntimeException("Employee history not found in the range of dates: " + from + " - " + to);
-            }
+
             List<EmployeeHistoryEntity> employeeHistory = new ArrayList<>(employeeHistoryCreated);
             employeeHistory.addAll(employeeHistoryActivated);
             String unit = getUnitMeasurement(from, to);
-            return reportService.getReport(employeeHistory, unit, from, to);
+            Map<String, Integer> value = reportService.getReport(employeeHistory, unit, from, to);
+            hardcodedHistoryRepository.save(new HardcodedHistoryEntity(
+                    UUID.randomUUID(),
+                    from,
+                    to,
+                    value
+            ));
+            return value;
     }
+
 
     public Map<String, Integer> getReportDeleted(LocalDate from, LocalDate to) {
         if (!isValidDatesReport(from, to)) {
             throw new IllegalArgumentException("The from date must be before the to date");
         }
+
+        if(hardcodedHistoryRepository.findByFromAndTo(from, to).isPresent()){
+            return hardcodedHistoryRepository.findByFromAndTo(from, to).get().getHardcodedValues();
+        }
+
         List<EmployeeHistoryEntity> employeeHistoryDeleted = employeeHistoryRepository.findByFromBetweenAndState(from, to, "DELETED")
                 .orElseThrow(() -> new RuntimeException("Error getting employee history"));
-        if (employeeHistoryDeleted.isEmpty()) {
-            throw new RuntimeException("Employee history not found in the range of dates: " + from + " - " + to);
-        }
         String unit = getUnitMeasurement(from, to);
-        return reportService.getReport(employeeHistoryDeleted, unit, from, to);
+        Map<String, Integer> value = reportService.getReport(employeeHistoryDeleted, unit, from, to);
+        hardcodedHistoryRepository.save(new HardcodedHistoryEntity(
+                UUID.randomUUID(),
+                from,
+                to,
+                value
+        ));
+        return value;
     }
 
     private boolean isValid(EmployeeRequestDTO employee) {
