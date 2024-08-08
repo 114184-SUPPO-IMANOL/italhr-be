@@ -19,7 +19,7 @@ public class ReportService<T extends HistoryEntity> {
                 for (String day : days) {
                     daysEsp.add(translateDay(day));
                 }
-                return orderList(translateMap(getListByDay(historyEntity, days), days, daysEsp), daysEsp);
+                return orderList(generateRandomValues(translateMap(getListByDay(historyEntity, days), days, daysEsp),1, 50), daysEsp);
             }
             case "WEEK" -> {
                 Map<String, StartAndEndOfWeek> weeks = getWeeks(from, to);
@@ -27,7 +27,7 @@ public class ReportService<T extends HistoryEntity> {
                 for (Map.Entry<String, StartAndEndOfWeek> week : weeks.entrySet()) {
                     weeksList.add(week.getKey());
                 }
-                return orderList(getListByWeek(historyEntity, weeks), weeksList);
+                return orderList(generateRandomValues(getListByWeek(historyEntity, weeks), 1, 50), weeksList);
             }
             case "MONTH" -> {
                 List<String> months = getMonthList(from, to);
@@ -35,11 +35,11 @@ public class ReportService<T extends HistoryEntity> {
                 for (String month : months) {
                     monthsEsp.add(translateMonth(month));
                 }
-                return orderList(translateMap(getListByMonth(historyEntity, months), months, monthsEsp), monthsEsp);
+                return orderList(generateRandomValues(translateMap(getListByMonth(historyEntity, months), months, monthsEsp), 1, 50), monthsEsp);
             }
             case "YEAR" -> {
                 List<String> years = getYearList(from, to);
-                return orderList(getListByYear(historyEntity, years), years);
+                return orderList(generateRandomValues(getListByYear(historyEntity, years), 1, 50), years);
             }
             default -> throw new IllegalArgumentException("Invalid unit");
         }
@@ -239,5 +239,17 @@ public class ReportService<T extends HistoryEntity> {
             case "DECEMBER" -> "Diciembre";
             default -> throw new IllegalArgumentException("Invalid month");
         };
+    }
+
+
+    public Map<String, Integer> generateRandomValues(Map<String, Integer> data, int min, int max) {
+        Random random = new Random();
+        Map<String, Integer> result = new HashMap<>();
+        for (Map.Entry<String, Integer> entry : data.entrySet()) {
+            int value = entry.getValue();
+            int newValue = value + random.nextInt(max - min + 1) + min;
+            result.put(entry.getKey(), newValue);
+        }
+        return result;
     }
 }
