@@ -5,9 +5,11 @@ import org.apiitalhrbe.dtos.request.DepartmentRequestDTO;
 import org.apiitalhrbe.dtos.response.DepartmentResponseDTO;
 import org.apiitalhrbe.entities.nosql.DepartmentHistoryEntity;
 import org.apiitalhrbe.entities.nosql.EmployeeHistoryEntity;
+import org.apiitalhrbe.entities.nosql.HardcodedHistoryEntity;
 import org.apiitalhrbe.entities.sql.DepartmentEntity;
 import org.apiitalhrbe.entities.sql.EmployeeEntity;
 import org.apiitalhrbe.repositories.nosql.DepartmentHistoryRepository;
+import org.apiitalhrbe.repositories.nosql.HardcodedHistoryRepository;
 import org.apiitalhrbe.repositories.sql.DepartmentRepository;
 import org.apiitalhrbe.utils.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +30,9 @@ public class DepartmentService {
 
     @Autowired
     private DepartmentHistoryRepository departmentHistoryRepository;
+
+    @Autowired
+    private HardcodedHistoryRepository hardcodedHistoryRepository;
 
     private final ModelMapper modelMapper = new ModelMapper();
 
@@ -169,30 +174,50 @@ public class DepartmentService {
         if (!isValidDatesReport(from, to)) {
             throw new IllegalArgumentException("The from date must be before the to date");
         }
+
+        if(hardcodedHistoryRepository.findByFromAndTo(from, to).isPresent()){
+            return hardcodedHistoryRepository.findByFromAndTo(from, to).get().getHardcodedValues();
+        }
+
         List<DepartmentHistoryEntity> historyCreated = departmentHistoryRepository.findByFromBetweenAndState(from, to, "CREATED")
                 .orElseThrow(() -> new RuntimeException("Error getting department history"));
         List<DepartmentHistoryEntity> historyActivated = departmentHistoryRepository.findByFromBetweenAndState(from, to, "ACTIVATED")
                 .orElseThrow(() -> new RuntimeException("Error getting department history"));
-        if (historyCreated.isEmpty() && historyActivated.isEmpty()) {
-            throw new RuntimeException("Department history not found in the range of dates: " + from + " - " + to);
-        }
+
         List<DepartmentHistoryEntity> history = new ArrayList<>(historyCreated);
         history.addAll(historyActivated);
         String unit = getUnitMeasurement(from, to);
-        return reportService.getReport(history, unit, from, to);
+        Map<String, Integer> value = reportService.getReport(history, unit, from, to);
+        hardcodedHistoryRepository.save(new HardcodedHistoryEntity(
+                UUID.randomUUID(),
+                from,
+                to,
+                value
+        ));
+        return value;
     }
 
     public Map<String, Integer> getReportDeleted(LocalDate from, LocalDate to) {
         if (!isValidDatesReport(from, to)) {
             throw new IllegalArgumentException("The from date must be before the to date");
         }
+
+        if(hardcodedHistoryRepository.findByFromAndTo(from, to).isPresent()){
+            return hardcodedHistoryRepository.findByFromAndTo(from, to).get().getHardcodedValues();
+        }
+
         List<DepartmentHistoryEntity> history = departmentHistoryRepository.findByFromBetweenAndState(from, to, "DELETED")
                 .orElseThrow(() -> new RuntimeException("Error getting department history"));
-        if (history.isEmpty()) {
-            throw new RuntimeException("Department history not found in the range of dates: " + from + " - " + to);
-        }
+
         String unit = getUnitMeasurement(from, to);
-        return reportService.getReport(history, unit, from, to);
+        Map<String, Integer> value = reportService.getReport(history, unit, from, to);
+        hardcodedHistoryRepository.save(new HardcodedHistoryEntity(
+                UUID.randomUUID(),
+                from,
+                to,
+                value
+        ));
+        return value;
     }
 
     private boolean isValid(DepartmentRequestDTO departmentRequestDTO) {
