@@ -19,6 +19,10 @@ public class HardcodedHistoryEntity implements HistoryEntity {
     @Id
     private UUID id;
 
+    private String status;
+
+    private String type;
+
     private LocalDate from;
 
     private LocalDate to;
