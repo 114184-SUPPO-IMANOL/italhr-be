@@ -4,7 +4,6 @@ import jakarta.persistence.EntityNotFoundException;
 import org.apiitalhrbe.dtos.request.DepartmentRequestDTO;
 import org.apiitalhrbe.dtos.response.DepartmentResponseDTO;
 import org.apiitalhrbe.entities.nosql.DepartmentHistoryEntity;
-import org.apiitalhrbe.entities.nosql.EmployeeHistoryEntity;
 import org.apiitalhrbe.entities.nosql.HardcodedHistoryEntity;
 import org.apiitalhrbe.entities.sql.DepartmentEntity;
 import org.apiitalhrbe.entities.sql.EmployeeEntity;
@@ -175,8 +174,8 @@ public class DepartmentService {
             throw new IllegalArgumentException("The from date must be before the to date");
         }
 
-        if(hardcodedHistoryRepository.findByFromAndTo(from, to).isPresent()){
-            return hardcodedHistoryRepository.findByFromAndTo(from, to).get().getHardcodedValues();
+        if(hardcodedHistoryRepository.findByFromAndToAndStatusAndType(from, to, "INTEGRATION", "DEPARTMENT").isPresent()){
+            return hardcodedHistoryRepository.findByFromAndToAndStatusAndType(from, to, "INTEGRATION", "DEPARTMENT").get().getHardcodedValues();
         }
 
         List<DepartmentHistoryEntity> historyCreated = departmentHistoryRepository.findByFromBetweenAndState(from, to, "CREATED")
@@ -190,6 +189,8 @@ public class DepartmentService {
         Map<String, Integer> value = reportService.getReport(history, unit, from, to);
         hardcodedHistoryRepository.save(new HardcodedHistoryEntity(
                 UUID.randomUUID(),
+                "INTEGRATION",
+                "DEPARTMENT",
                 from,
                 to,
                 value
@@ -202,8 +203,8 @@ public class DepartmentService {
             throw new IllegalArgumentException("The from date must be before the to date");
         }
 
-        if(hardcodedHistoryRepository.findByFromAndTo(from, to).isPresent()){
-            return hardcodedHistoryRepository.findByFromAndTo(from, to).get().getHardcodedValues();
+        if(hardcodedHistoryRepository.findByFromAndToAndStatusAndType(from, to, "DELETED", "DEPARTMENT").isPresent()){
+            return hardcodedHistoryRepository.findByFromAndToAndStatusAndType(from, to, "DELETED", "DEPARTMENT").get().getHardcodedValues();
         }
 
         List<DepartmentHistoryEntity> history = departmentHistoryRepository.findByFromBetweenAndState(from, to, "DELETED")
@@ -213,6 +214,8 @@ public class DepartmentService {
         Map<String, Integer> value = reportService.getReport(history, unit, from, to);
         hardcodedHistoryRepository.save(new HardcodedHistoryEntity(
                 UUID.randomUUID(),
+                "DELETED",
+                "DEPARTMENT",
                 from,
                 to,
                 value
