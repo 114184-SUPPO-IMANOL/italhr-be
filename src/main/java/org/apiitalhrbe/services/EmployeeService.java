@@ -179,8 +179,8 @@ public class EmployeeService {
                 throw new IllegalArgumentException("The from date must be before the to date");
             }
 
-            if(hardcodedHistoryRepository.findByFromAndTo(from, to).isPresent()){
-                return hardcodedHistoryRepository.findByFromAndTo(from, to).get().getHardcodedValues();
+            if(hardcodedHistoryRepository.findByFromAndToAndStatusAndType(from, to, "INTEGRATION", "EMPLOYEE").isPresent()){
+                return hardcodedHistoryRepository.findByFromAndToAndStatusAndType(from, to, "INTEGRATION", "EMPLOYEE").get().getHardcodedValues();
             }
 
             List<EmployeeHistoryEntity> employeeHistoryCreated = employeeHistoryRepository.findByFromBetweenAndState(from, to, "CREATED")
@@ -194,6 +194,8 @@ public class EmployeeService {
             Map<String, Integer> value = reportService.getReport(employeeHistory, unit, from, to);
             hardcodedHistoryRepository.save(new HardcodedHistoryEntity(
                     UUID.randomUUID(),
+                    "INTEGRATION",
+                    "EMPLOYEE",
                     from,
                     to,
                     value
@@ -207,8 +209,8 @@ public class EmployeeService {
             throw new IllegalArgumentException("The from date must be before the to date");
         }
 
-        if(hardcodedHistoryRepository.findByFromAndTo(from, to).isPresent()){
-            return hardcodedHistoryRepository.findByFromAndTo(from, to).get().getHardcodedValues();
+        if(hardcodedHistoryRepository.findByFromAndToAndStatusAndType(from, to, "DELETED", "EMPLOYEE").isPresent()){
+            return hardcodedHistoryRepository.findByFromAndToAndStatusAndType(from, to, "DELETED", "EMPLOYEE").get().getHardcodedValues();
         }
 
         List<EmployeeHistoryEntity> employeeHistoryDeleted = employeeHistoryRepository.findByFromBetweenAndState(from, to, "DELETED")
@@ -217,6 +219,8 @@ public class EmployeeService {
         Map<String, Integer> value = reportService.getReport(employeeHistoryDeleted, unit, from, to);
         hardcodedHistoryRepository.save(new HardcodedHistoryEntity(
                 UUID.randomUUID(),
+                "DELETED",
+                "EMPLOYEE",
                 from,
                 to,
                 value
