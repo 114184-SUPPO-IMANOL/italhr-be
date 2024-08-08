@@ -4,11 +4,9 @@ import jakarta.persistence.EntityNotFoundException;
 import org.apiitalhrbe.dtos.request.WorkstationRequestDTO;
 import org.apiitalhrbe.dtos.response.WorkstationDetailResponseDTO;
 import org.apiitalhrbe.dtos.response.WorkstationResponseDTO;
-import org.apiitalhrbe.entities.nosql.DepartmentHistoryEntity;
-import org.apiitalhrbe.entities.nosql.FunctionEntity;
-import org.apiitalhrbe.entities.nosql.ResponsibilityEntity;
-import org.apiitalhrbe.entities.nosql.WorkstationHistoryEntity;
+import org.apiitalhrbe.entities.nosql.*;
 import org.apiitalhrbe.entities.sql.WorkstationEntity;
+import org.apiitalhrbe.repositories.nosql.HardcodedHistoryRepository;
 import org.apiitalhrbe.repositories.nosql.WorkstationHistoryRepository;
 import org.apiitalhrbe.repositories.sql.WorkstationRepository;
 import org.apiitalhrbe.utils.ModelMapper;
@@ -33,6 +31,9 @@ public class WorkstationService {
 
     @Autowired
     private WorkstationHistoryRepository workstationHistoryRepository;
+
+    @Autowired
+    private HardcodedHistoryRepository hardcodedHistoryRepository;
 
     @Autowired
     private FunctionService functionService;
@@ -147,30 +148,50 @@ public class WorkstationService {
         if (!isValidDatesReport(from, to)) {
             throw new IllegalArgumentException("The from date must be before the to date");
         }
+
+        if(hardcodedHistoryRepository.findByFromAndTo(from, to).isPresent()){
+            return hardcodedHistoryRepository.findByFromAndTo(from, to).get().getHardcodedValues();
+        }
+
         List<WorkstationHistoryEntity> historyCreated = workstationHistoryRepository.findByFromBetweenAndState(from, to, "CREATED")
                 .orElseThrow(() -> new RuntimeException("Error getting workstation history"));
         List<WorkstationHistoryEntity> historyActivated = workstationHistoryRepository.findByFromBetweenAndState(from, to, "ACTIVATED")
                 .orElseThrow(() -> new RuntimeException("Error getting workstation history"));
-        if (historyCreated.isEmpty() && historyActivated.isEmpty()) {
-            throw new RuntimeException("Workstation history not found in the range of dates: " + from + " - " + to);
-        }
+
         List<WorkstationHistoryEntity> history = new ArrayList<>(historyCreated);
         history.addAll(historyActivated);
         String unit = getUnitMeasurement(from, to);
-        return reportService.getReport(history, unit, from, to);
+        Map<String, Integer> value = reportService.getReport(history, unit, from, to);
+        hardcodedHistoryRepository.save(new HardcodedHistoryEntity(
+                UUID.randomUUID(),
+                from,
+                to,
+                value
+        ));
+        return value;
     }
 
     public Map<String, Integer> getReportDeleted(LocalDate from, LocalDate to) {
         if (!isValidDatesReport(from, to)) {
             throw new IllegalArgumentException("The from date must be before the to date");
         }
+
+        if(hardcodedHistoryRepository.findByFromAndTo(from, to).isPresent()){
+            return hardcodedHistoryRepository.findByFromAndTo(from, to).get().getHardcodedValues();
+        }
+
         List<WorkstationHistoryEntity> history = workstationHistoryRepository.findByFromBetweenAndState(from, to, "DELETED")
                 .orElseThrow(() -> new RuntimeException("Error getting workstation history"));
-        if (history.isEmpty()) {
-            throw new RuntimeException("Workstation history not found in the range of dates: " + from + " - " + to);
-        }
+
         String unit = getUnitMeasurement(from, to);
-        return reportService.getReport(history, unit, from, to);
+        Map<String, Integer> value = reportService.getReport(history, unit, from, to);
+        hardcodedHistoryRepository.save(new HardcodedHistoryEntity(
+                UUID.randomUUID(),
+                from,
+                to,
+                value
+        ));
+        return value;
     }
 
     private Boolean isValid(WorkstationRequestDTO workstationRequestDTO) {
