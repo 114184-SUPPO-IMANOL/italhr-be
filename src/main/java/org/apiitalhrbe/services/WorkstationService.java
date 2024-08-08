@@ -149,8 +149,8 @@ public class WorkstationService {
             throw new IllegalArgumentException("The from date must be before the to date");
         }
 
-        if(hardcodedHistoryRepository.findByFromAndTo(from, to).isPresent()){
-            return hardcodedHistoryRepository.findByFromAndTo(from, to).get().getHardcodedValues();
+        if(hardcodedHistoryRepository.findByFromAndToAndStatusAndType(from, to, "INTEGRATION", "WORKSTATION").isPresent()){
+            return hardcodedHistoryRepository.findByFromAndToAndStatusAndType(from, to, "INTEGRATION", "WORKSTATION").get().getHardcodedValues();
         }
 
         List<WorkstationHistoryEntity> historyCreated = workstationHistoryRepository.findByFromBetweenAndState(from, to, "CREATED")
@@ -164,6 +164,8 @@ public class WorkstationService {
         Map<String, Integer> value = reportService.getReport(history, unit, from, to);
         hardcodedHistoryRepository.save(new HardcodedHistoryEntity(
                 UUID.randomUUID(),
+                "INTEGRATION",
+                "WORKSTATION",
                 from,
                 to,
                 value
@@ -176,8 +178,8 @@ public class WorkstationService {
             throw new IllegalArgumentException("The from date must be before the to date");
         }
 
-        if(hardcodedHistoryRepository.findByFromAndTo(from, to).isPresent()){
-            return hardcodedHistoryRepository.findByFromAndTo(from, to).get().getHardcodedValues();
+        if(hardcodedHistoryRepository.findByFromAndToAndStatusAndType(from, to, "DELETED", "WORKSTATION").isPresent()){
+            return hardcodedHistoryRepository.findByFromAndToAndStatusAndType(from, to, "DELETED", "WORKSTATION").get().getHardcodedValues();
         }
 
         List<WorkstationHistoryEntity> history = workstationHistoryRepository.findByFromBetweenAndState(from, to, "DELETED")
@@ -187,6 +189,8 @@ public class WorkstationService {
         Map<String, Integer> value = reportService.getReport(history, unit, from, to);
         hardcodedHistoryRepository.save(new HardcodedHistoryEntity(
                 UUID.randomUUID(),
+                "DELETED",
+                "WORKSTATION",
                 from,
                 to,
                 value
