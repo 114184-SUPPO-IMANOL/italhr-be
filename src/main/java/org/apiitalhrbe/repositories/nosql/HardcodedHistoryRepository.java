@@ -11,6 +11,6 @@ import java.util.UUID;
 
 @Repository
 public interface HardcodedHistoryRepository extends MongoRepository<HardcodedHistoryEntity, UUID> {
-    @Query("{ 'from': ?0, 'to': ?1 }")
-    Optional<HardcodedHistoryEntity> findByFromAndTo(LocalDate from, LocalDate to);
+    @Query("{ 'from': ?0, 'to': ?1, 'status': ?2, 'type': ?3 }")
+    Optional<HardcodedHistoryEntity> findByFromAndToAndStatusAndType(LocalDate from, LocalDate to, String status, String type);
 }
